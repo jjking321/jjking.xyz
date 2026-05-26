@@ -2,7 +2,7 @@
   "eyebrow": "About",
   "heading": "Hi, I am <em>JJ</em>.",
   "subheading": "I am an entrepreneur, future father, and serial hobbyist based in Raleigh, NC.",
-  "body": "Auto-deploy verification test (1779820139).",
+  "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.\n\nSed ut perspiciatis unde omnis iste natus error sit voluptatem.",
   "cta": {
     "label": "jj@jjking.xyz",
     "href": "mailto:jj@jjking.xyz"
@@ -10,15 +10,27 @@
   "sidebar": [
     {
       "label": "Based",
-      "value": "Raleigh, NC"
+      "value": "Raleigh, NC · 35.78° N"
+    },
+    {
+      "label": "Day job",
+      "value": "Beachside VR · Founder"
+    },
+    {
+      "label": "Always",
+      "value": "Building a life that feels good and exciting."
     }
   ],
   "sections": [
     {
       "eyebrow": "/now",
-      "heading": "Test",
+      "heading": "What I am into this season.",
       "items": [
-        "Verifying auto-deploy works end-to-end"
+        "Replace these with what you are into this season.",
+        "Five rotating items work well.",
+        "Edit any time from /admin.",
+        "Lorem ipsum dolor sit amet.",
+        "Sed do eiusmod tempor."
       ]
     }
   ]
