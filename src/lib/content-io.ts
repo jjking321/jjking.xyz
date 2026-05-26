@@ -1,9 +1,14 @@
-// Filesystem reads for the admin (run at request time on the server).
-// Writes go through src/lib/github.ts so they trigger a Vercel rebuild.
+// Reads for the admin (run at request time on the server). In production
+// (where GITHUB_TOKEN + GITHUB_REPO are set), reads go through the GitHub
+// API since the serverless function bundle doesn't include src/content/.
+// In local dev (no token), reads use the filesystem so you can iterate
+// without a real repo.
+// Writes always go through src/lib/github.ts.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getCollectionMeta } from './collections-meta';
+import { getFile, listDir as ghListDir, isGithubLive, decodeContent } from './github';
 
 export interface ItemRow {
   slug: string;
@@ -94,27 +99,35 @@ export function serializeMarkdown(data: Record<string, any>, body: string): stri
   return lines.join('\n') + '\n\n' + body.trimStart();
 }
 
-/** List every entry in a collection by reading the filesystem. */
+/** List every entry in a collection. Reads from GitHub in prod, fs in dev. */
 export async function listItems(collectionSlug: string): Promise<ItemRow[]> {
   const meta = getCollectionMeta(collectionSlug);
   if (!meta) return [];
-  const abs = path.resolve(projectRoot(), meta.contentDir);
-  const entries = await listDir(abs);
-  const out: ItemRow[] = [];
-  for (const f of entries) {
-    // Skip template files, hidden files, and asset directories
-    if (f.startsWith('_') || f.startsWith('.') || f === 'assets') continue;
-    const full = path.join(abs, f);
-    let stat;
+
+  // Get the list of filenames in the collection's directory
+  let filenames: string[];
+  if (isGithubLive()) {
+    const entries = await ghListDir(meta.contentDir);
+    filenames = entries.filter((e) => e.type === 'file').map((e) => e.name);
+  } else {
+    const abs = path.resolve(projectRoot(), meta.contentDir);
     try {
-      stat = await fs.stat(full);
+      const dirents = await fs.readdir(abs, { withFileTypes: true });
+      filenames = dirents.filter((d) => d.isFile()).map((d) => d.name);
     } catch {
-      continue;
+      filenames = [];
     }
-    if (stat.isDirectory()) continue;
+  }
+
+  const out: ItemRow[] = [];
+  for (const f of filenames) {
+    // Skip templates, hidden files, etc.
+    if (f.startsWith('_') || f.startsWith('.')) continue;
+
     if (meta.type === 'data' && f.endsWith('.json')) {
       try {
-        const raw = await fs.readFile(full, 'utf8');
+        const raw = await readFile(`${meta.contentDir}/${f}`);
+        if (raw == null) continue;
         const data = JSON.parse(raw);
         out.push({
           slug: f.replace(/\.json$/, ''),
@@ -126,7 +139,8 @@ export async function listItems(collectionSlug: string): Promise<ItemRow[]> {
       }
     } else if (meta.type === 'content' && (f.endsWith('.md') || f.endsWith('.mdx'))) {
       try {
-        const raw = await fs.readFile(full, 'utf8');
+        const raw = await readFile(`${meta.contentDir}/${f}`);
+        if (raw == null) continue;
         const { data, body } = parseMarkdown(raw);
         out.push({
           slug: f.replace(/\.(md|mdx)$/, ''),
@@ -150,6 +164,19 @@ export async function listItems(collectionSlug: string): Promise<ItemRow[]> {
     });
   }
   return out;
+}
+
+/** Read a single file from the repo as UTF-8 text. Returns null if missing. */
+async function readFile(repoPath: string): Promise<string | null> {
+  if (isGithubLive()) {
+    const file = await getFile(repoPath);
+    return file ? decodeContent(file.content) : null;
+  }
+  try {
+    return await fs.readFile(path.resolve(projectRoot(), repoPath), 'utf8');
+  } catch {
+    return null;
+  }
 }
 
 export async function getItem(collectionSlug: string, slug: string): Promise<ItemRow | null> {

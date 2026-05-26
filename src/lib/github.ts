@@ -90,6 +90,7 @@ export async function putFile(opts: {
     }),
   });
   if (!r.ok) throw new Error(`github put ${repoPath}: ${r.status} ${await r.text()}`);
+  await triggerRedeploy();
 }
 
 /** Delete a file. No-op if missing. */
@@ -111,9 +112,91 @@ export async function deleteFile(repoPath: string, message: string): Promise<voi
   });
   if (!r.ok && r.status !== 404)
     throw new Error(`github delete ${repoPath}: ${r.status} ${await r.text()}`);
+  await triggerRedeploy();
 }
 
 /** True if running against a real GitHub repo (vs. local fs fallback). */
 export function isGithubLive(): boolean {
   return isLive();
+}
+
+/**
+ * Trigger a Vercel rebuild after a commit. Two-step strategy:
+ *  1) If `VERCEL_DEPLOY_HOOK` is set (project linked to a git source), ping it.
+ *  2) Otherwise fall back to creating a deployment via the Vercel REST API
+ *     using `VERCEL_TOKEN` + `VERCEL_PROJECT_ID` and pulling from GitHub.
+ *
+ * Best-effort: failures are logged but don't break the commit.
+ */
+export async function triggerRedeploy(): Promise<void> {
+  const hook = process.env.VERCEL_DEPLOY_HOOK;
+  if (hook) {
+    try {
+      await fetch(hook, { method: 'POST' });
+      return;
+    } catch (e) {
+      console.warn('[deploy] hook ping failed:', (e as Error).message);
+    }
+  }
+
+  const token = process.env.VERCEL_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  const teamId = process.env.VERCEL_TEAM_ID;
+  if (!token || !projectId) {
+    console.warn('[deploy] no VERCEL_DEPLOY_HOOK or VERCEL_TOKEN — skipping auto-rebuild');
+    return;
+  }
+  try {
+    const body = {
+      name: 'admin-commit',
+      project: projectId,
+      target: 'production',
+      gitSource: {
+        type: 'github',
+        repo: REPO(),
+        ref: BRANCH(),
+      },
+    };
+    const url = `https://api.vercel.com/v13/deployments${teamId ? `?teamId=${teamId}` : ''}`;
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      console.warn(`[deploy] api responded ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    }
+  } catch (e) {
+    console.warn('[deploy] api call failed:', (e as Error).message);
+  }
+}
+
+/**
+ * List the entries in a directory. Returns an array of { name, type, sha }
+ * where type is 'file' or 'dir'. Empty array if the directory doesn't exist.
+ */
+export async function listDir(
+  repoPath: string
+): Promise<Array<{ name: string; type: 'file' | 'dir'; sha: string }>> {
+  if (!isLive()) {
+    try {
+      const dirents = await fs.readdir(fsPath(repoPath), { withFileTypes: true });
+      return dirents.map((d) => ({
+        name: d.name,
+        type: d.isDirectory() ? ('dir' as const) : ('file' as const),
+        sha: '',
+      }));
+    } catch {
+      return [];
+    }
+  }
+  const r = await fetch(
+    `${API}/repos/${REPO()}/contents/${encodeURI(repoPath)}?ref=${encodeURIComponent(BRANCH())}`,
+    { headers: ghHeaders() }
+  );
+  if (r.status === 404) return [];
+  if (!r.ok) throw new Error(`github list ${repoPath}: ${r.status} ${await r.text()}`);
+  const j = (await r.json()) as Array<{ name: string; type: string; sha: string }>;
+  if (!Array.isArray(j)) return [];
+  return j.map((e) => ({ name: e.name, type: e.type as 'file' | 'dir', sha: e.sha }));
 }
