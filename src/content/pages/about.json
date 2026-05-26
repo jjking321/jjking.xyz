@@ -1,8 +1,8 @@
 {
-  "eyebrow": "About (admin test)",
+  "eyebrow": "About",
   "heading": "Hi, I am <em>JJ</em>.",
   "subheading": "I am an entrepreneur, future father, and serial hobbyist based in Raleigh, NC.",
-  "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+  "body": "Auto-deploy test from admin API.",
   "cta": {
     "label": "jj@jjking.xyz",
     "href": "mailto:jj@jjking.xyz"
@@ -18,7 +18,7 @@
       "eyebrow": "/now",
       "heading": "Test",
       "items": [
-        "This was saved via the admin API"
+        "Confirming auto-deploy works"
       ]
     }
   ]
