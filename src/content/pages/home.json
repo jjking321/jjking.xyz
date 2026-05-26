@@ -1,0 +1,43 @@
+{
+  "sections": [
+    {
+      "eyebrow": "Photos",
+      "heading": "Lately, randomly.",
+      "items": []
+    },
+    {
+      "eyebrow": "About",
+      "heading": "I am an entrepreneur, future father, and serial hobbyist based in Raleigh, NC.",
+      "body": "I'm working on building a life that feels good and exciting. Instead of endless scrolling, I decided to start this page as a creative outlet to share whatever I'm creating at the time. You can expect blogs, photos, drawings, playlists, and recipes here.",
+      "items": []
+    },
+    {
+      "eyebrow": "Currently",
+      "items": [
+        "Lorem ipsum dolor sit amet",
+        "Consectetur adipiscing elit, sed do",
+        "Eiusmod tempor incididunt ut labore"
+      ]
+    },
+    {
+      "eyebrow": "Writing",
+      "heading": "From the page.",
+      "items": []
+    },
+    {
+      "eyebrow": "Playlists",
+      "heading": "Curating a vibe.",
+      "items": []
+    },
+    {
+      "eyebrow": "Art",
+      "heading": "Drawings & experiments.",
+      "items": []
+    },
+    {
+      "eyebrow": "Apps",
+      "heading": "Things I built.",
+      "items": []
+    }
+  ]
+}

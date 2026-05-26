@@ -1,0 +1,108 @@
+---
+export const prerender = false;
+import { getSite } from '@lib/site';
+import { isAuthenticated } from '@lib/auth';
+
+const site = await getSite();
+// If already logged in, skip the form
+if (await isAuthenticated(Astro.cookies)) {
+  return Astro.redirect('/admin');
+}
+
+const next = Astro.url.searchParams.get('next') ?? '/admin';
+const errorParam = Astro.url.searchParams.get('error');
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign in · {site.siteName}</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c0c0c;
+        --fg: #f3efe6;
+        --muted: #8a8a8a;
+        --rule: #2a2a2a;
+        --accent: #ff5b3c;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        background: var(--bg);
+        color: var(--fg);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      .card {
+        width: 100%;
+        max-width: 380px;
+        border: 1px solid var(--rule);
+        padding: 32px 28px;
+      }
+      h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.01em; }
+      .sub { font-size: 12px; color: var(--muted); margin: 0 0 24px; letter-spacing: 0.06em; text-transform: uppercase; }
+      label { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+      input[type=password] {
+        width: 100%;
+        padding: 12px 14px;
+        background: #161616;
+        border: 1px solid var(--rule);
+        color: var(--fg);
+        font: inherit;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+      input:focus { outline: none; border-color: var(--accent); }
+      button {
+        width: 100%;
+        padding: 12px 16px;
+        background: var(--fg);
+        color: var(--bg);
+        border: none;
+        font: inherit;
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+      button:hover { background: var(--accent); color: var(--fg); }
+      .error {
+        background: #2a1212;
+        border: 1px solid #5a1c1c;
+        color: #ff8c8c;
+        padding: 10px 12px;
+        font-size: 12px;
+        margin-bottom: 16px;
+      }
+      .back {
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        font-size: 12px;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      .back:hover { color: var(--fg); }
+    </style>
+  </head>
+  <body>
+    <form class="card" method="POST" action="/api/admin/login">
+      <h1>{site.siteName}</h1>
+      <p class="sub">Admin · sign in</p>
+      {errorParam === '1' && <div class="error">Wrong password. Try again.</div>}
+      {errorParam === 'setup' && <div class="error">ADMIN_PASSWORD env var isn't set yet. See SETUP.md.</div>}
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autofocus required />
+      <input type="hidden" name="next" value={next} />
+      <button type="submit">Enter</button>
+      <a class="back" href="/">← Back to site</a>
+    </form>
+  </body>
+</html>

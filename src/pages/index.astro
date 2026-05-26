@@ -1,0 +1,618 @@
+---
+import Base from '@layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+import { getPage, findSection } from '@lib/site';
+
+const photos = await getCollection('photos');
+const posts = (await getCollection('posts', ({ data }) => !data.draft))
+  .sort((a, b) => b.data.publishedAt.valueOf() - a.data.publishedAt.valueOf());
+const playlists = await getCollection('playlists');
+const apps = await getCollection('apps');
+const artPieces = await getCollection('art');
+
+const home = await getPage('home');
+const sPhotos = findSection(home, 'Photos');
+const sAbout = findSection(home, 'About');
+const sCurrently = findSection(home, 'Currently');
+const sWriting = findSection(home, 'Writing');
+const sPlaylists = findSection(home, 'Playlists');
+const sArt = findSection(home, 'Art');
+const sApps = findSection(home, 'Apps');
+
+// Show all photos on home in random order. JS masonry packs them tight so
+// columns always end at roughly the same height.
+const shuffled = [...photos];
+for (let i = shuffled.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+}
+const homePhotos = shuffled;
+---
+
+<Base>
+  <!-- ===== RANDOM PHOTOS ===== -->
+  {homePhotos.length > 0 && (
+    <section class="featured">
+      <div class="wrap">
+        <div class="featured-bar">
+          <div>
+            <div class="eyebrow">{sPhotos?.eyebrow ?? 'Photos'}</div>
+            <h2 class="featured-h2">{sPhotos?.heading ?? 'Lately, randomly.'}</h2>
+          </div>
+          <div class="featured-actions">
+            <button class="btn" id="shuffle-btn" type="button">↻ Shuffle</button>
+            <a href="/gallery" class="btn primary">All photos →</a>
+          </div>
+        </div>
+
+        <div class="home-grid" id="home-grid" data-lightbox-group>
+          {homePhotos.map((p, i) => (
+            <a
+              href={p.data.image.src}
+              class="hp"
+              data-photo-id={p.id}
+              data-lightbox
+              data-src={p.data.image.src}
+              data-title={p.data.title ?? ''}
+              data-location={p.data.location ?? ''}
+              data-tags={p.data.tags.join(',')}
+              data-w={p.data.image.width}
+              data-h={p.data.image.height}
+            >
+              <div class="hp-img">
+                <Image
+                  src={p.data.image}
+                  alt={p.data.caption ?? p.data.title ?? ''}
+                  widths={[400, 600, 900, 1400]}
+                  sizes="(max-width: 600px) 33vw, (max-width: 1100px) 33vw, 24vw"
+                  quality={88}
+                  loading={i < 8 ? 'eager' : 'lazy'}
+                />
+                {p.data.tags.length > 0 && (
+                  <div class="hp-tags">
+                    {p.data.tags.slice(0, 1).map((t) => <span class="tag-pill">{t}</span>)}
+                  </div>
+                )}
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- ===== ABOUT BLOCK ===== -->
+  <section class="about-block">
+    <div class="wrap about-grid">
+      <div class="about-text">
+        <div class="eyebrow">{sAbout?.eyebrow ?? 'About'}</div>
+        <h2 class="about-h2">{sAbout?.heading}</h2>
+        {sAbout?.body && <p class="about-p">{sAbout.body}</p>}
+        <a href="/about" class="link-underline about-cta">Learn more about me →</a>
+      </div>
+      <div class="about-side">
+        <div class="eyebrow">{sCurrently?.eyebrow ?? 'Currently'}</div>
+        <ul class="about-list">
+          {(sCurrently?.items ?? []).map((item) => <li>{item}</li>)}
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== WRITING ===== -->
+  {posts.length > 0 && (
+    <section class="words reveal">
+      <div class="wrap">
+        <div class="words-head">
+          <div class="eyebrow">{sWriting?.eyebrow ?? 'Writing'}</div>
+          <h2 class="words-h2">{sWriting?.heading ?? 'From the page.'}</h2>
+        </div>
+        <div class="words-list">
+          {posts.slice(0, 3).map((post) => (
+            <a href={`/writing/${post.slug}`} class="word-row">
+              <div class="word-meta">
+                <span class="word-date">
+                  {post.data.publishedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' })}
+                </span>
+                {post.data.tags.length > 0 && (
+                  <span class="word-tags">{post.data.tags.map((t) => `#${t}`).join(' · ')}</span>
+                )}
+              </div>
+              <h3 class="word-title">{post.data.title}</h3>
+              {post.data.description && <p class="word-desc">{post.data.description}</p>}
+              <span class="word-arrow">→</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- ===== PLAYLISTS + APPS ===== -->
+  {(playlists.length > 0 || apps.length > 0 || artPieces.length > 0) && (
+    <section class="duo reveal">
+      <div class="wrap duo-grid">
+        {playlists.length > 0 && (
+          <div class="duo-col">
+            <div class="eyebrow">{sPlaylists?.eyebrow ?? 'Playlists'}</div>
+            <h3 class="duo-h3">{sPlaylists?.heading ?? 'Curating a vibe.'}</h3>
+            <ul class="duo-list">
+              {playlists.slice(0, 4).map((pl) => (
+                <li>
+                  <a href="/playlists" class="duo-item">
+                    <span class="duo-dot" style={`background: ${pl.data.color ?? 'var(--accent)'};`}></span>
+                    <span class="duo-name">{pl.data.title}</span>
+                    <span class="duo-mood">{pl.data.mood}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <a href="/playlists" class="link-underline duo-cta">All playlists →</a>
+          </div>
+        )}
+
+        {artPieces.length > 0 && (
+          <div class="duo-col">
+            <div class="eyebrow">{sArt?.eyebrow ?? 'Art'}</div>
+            <h3 class="duo-h3" set:html={sArt?.heading ?? 'Drawings &amp; experiments.'}></h3>
+            <ul class="duo-list">
+              {artPieces.slice(0, 4).map((piece) => (
+                <li>
+                  <a href="/art" class="duo-item">
+                    <span class="duo-dot" style="background: var(--accent);"></span>
+                    <span class="duo-name">{piece.data.title}</span>
+                    <span class="duo-mood">{piece.data.medium ?? ''}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <a href="/art" class="link-underline duo-cta">All art →</a>
+          </div>
+        )}
+
+        {apps.length > 0 && (
+          <div class="duo-col">
+            <div class="eyebrow">{sApps?.eyebrow ?? 'Apps'}</div>
+            <h3 class="duo-h3">{sApps?.heading ?? 'Things I built.'}</h3>
+            <ul class="duo-list">
+              {apps.slice(0, 4).map((app) => (
+                <li>
+                  <a href={app.data.url ?? '/apps'} target={app.data.url ? '_blank' : undefined} rel={app.data.url ? 'noreferrer' : undefined} class="duo-item">
+                    <span class={`duo-dot status-${app.data.status}`}></span>
+                    <span class="duo-name">{app.data.title}</span>
+                    <span class="duo-mood">{app.data.tagline}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <a href="/apps" class="link-underline duo-cta">All projects →</a>
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+</Base>
+
+<style>
+  /* ===== FEATURED RANDOM PHOTOS ===== */
+  .featured {
+    padding: 64px 0 80px;
+  }
+  .featured-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .featured-h2 {
+    font-size: clamp(28px, 4vw, 48px);
+    line-height: 1.05;
+    letter-spacing: -0.025em;
+    margin-top: 6px;
+  }
+  .featured-actions { display: flex; gap: 8px; }
+
+  /* IG-style masonry. JS positions each card into the shortest column, so
+     all columns end at roughly the same height — no ragged bottom. Each
+     photo keeps its natural aspect — no forced cropping. */
+  .home-grid {
+    position: relative;
+    /* Height is set by JS once layout runs; before JS, items stack vertically as a fallback */
+  }
+  .hp {
+    /* Before JS runs: each card is a normal block (no positioning weirdness) */
+    display: block;
+    margin: 0 0 8px;
+    transition: opacity 0.2s;
+    cursor: zoom-in;
+  }
+  /* After JS runs, cards become absolutely positioned */
+  .home-grid.is-packed .hp {
+    position: absolute;
+    margin: 0;
+  }
+  .hp:hover { opacity: 0.92; }
+  .hp-img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-2);
+    border-radius: 3px;
+  }
+  .hp-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;        /* crop, never squeeze */
+    object-position: center;
+    display: block;
+    transition: transform 0.5s var(--ease-out);
+  }
+  .hp:hover .hp-img img { transform: scale(1.025); }
+  .hp-tags {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .hp:hover .hp-tags { opacity: 1; }
+
+  /* ===== ABOUT BLOCK ===== */
+  .about-block {
+    padding: 100px 0;
+    border-top: 1px solid var(--rule-c);
+  }
+  .about-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+  .about-h2 {
+    font-size: clamp(28px, 3.5vw, 40px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 14px 0 24px;
+    max-width: 28ch;
+  }
+  .about-p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--muted);
+    margin: 0 0 22px;
+    max-width: 60ch;
+  }
+  .about-cta {
+    font-size: 14px;
+    color: var(--fg);
+    font-weight: 500;
+  }
+  .about-side .eyebrow { margin-bottom: 14px; }
+  .about-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 14.5px;
+    color: var(--fg);
+  }
+  .about-list li {
+    padding-left: 18px;
+    position: relative;
+  }
+  .about-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ===== WRITING ===== */
+  .words {
+    padding: 80px 0;
+    border-top: 1px solid var(--rule-c);
+  }
+  .words-head { margin-bottom: 32px; }
+  .words-h2 {
+    font-size: clamp(28px, 4vw, 48px);
+    margin-top: 6px;
+  }
+  .words-list { display: flex; flex-direction: column; }
+  .word-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 32px;
+    grid-template-areas: 'meta title arrow' 'desc desc desc';
+    gap: 12px 24px;
+    padding: 24px 0;
+    border-bottom: 1px solid var(--rule-c);
+    align-items: baseline;
+    transition: padding 0.25s var(--ease-snap), color 0.25s;
+  }
+  .word-row:first-child { border-top: 1px solid var(--rule-c); }
+  .word-row:hover { padding-left: 16px; color: var(--accent); }
+  .word-meta {
+    grid-area: meta;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .word-title {
+    grid-area: title;
+    font-size: clamp(20px, 2.5vw, 30px);
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+  }
+  .word-desc {
+    grid-area: desc;
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: 60ch;
+  }
+  .word-arrow { grid-area: arrow; font-size: 18px; text-align: right; }
+
+  /* ===== DUO ===== */
+  .duo {
+    padding: 80px 0;
+    border-top: 1px solid var(--rule-c);
+  }
+  .duo-grid {
+    display: grid;
+    gap: 56px 40px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .duo-h3 {
+    font-size: clamp(22px, 2.5vw, 28px);
+    line-height: 1.2;
+    margin: 8px 0 16px;
+  }
+  .duo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 16px;
+  }
+  .duo-list li { border-top: 1px solid var(--rule-c); }
+  .duo-list li:last-child { border-bottom: 1px solid var(--rule-c); }
+  .duo-item {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    gap: 12px;
+    align-items: baseline;
+    padding: 12px 0;
+    transition: color 0.2s, padding 0.25s;
+  }
+  .duo-item:hover { color: var(--accent); padding-left: 6px; }
+  .duo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    align-self: center;
+  }
+  .duo-dot.status-live { background: #4ade80; }
+  .duo-dot.status-beta { background: #f0a020; }
+  .duo-dot.status-wip { background: var(--hot); }
+  .duo-name {
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .duo-mood {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: right;
+  }
+  .duo-cta {
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .duo-cta:hover { color: var(--fg); }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 760px) {
+    .about-grid { grid-template-columns: 1fr; gap: 40px; }
+    .word-row {
+      grid-template-columns: 1fr 32px;
+      grid-template-areas: 'meta arrow' 'title arrow' 'desc desc';
+    }
+  }
+</style>
+
+<script>
+  /*
+    Masonry with random, orientation-aware aspect ratios.
+
+    For each photo:
+      - Detect orientation from natural w/h (portrait, landscape, square)
+      - Pick a random aspect from a pool appropriate for that orientation
+      - Render the cell at that aspect; the image inside is cropped (object-fit: cover) — never squeezed
+
+    Placement: each item goes into the column with the lowest current height
+    (greedy bin-packing). For the LAST few items, we evaluate every aspect
+    in the pool and pick the (column, aspect) combo that best balances column
+    heights — this gives nearly-even bottom edges.
+
+    Aspects re-rolled on initial load + Shuffle click. Resize keeps cached aspects.
+  */
+  type Aspect = { w: number; h: number };
+
+  // Pools of cell aspects. Wider variety = more interesting random sizing.
+  const PORTRAIT_POOL: Aspect[] = [
+    { w: 1, h: 1 },    // 1:1   square crop
+    { w: 4, h: 5 },    // 4:5   IG portrait
+    { w: 3, h: 4 },
+    { w: 2, h: 3 },
+    { w: 9, h: 14 },   // very tall
+  ];
+  const LANDSCAPE_POOL: Aspect[] = [
+    { w: 1, h: 1 },    // 1:1   square crop
+    { w: 5, h: 4 },
+    { w: 4, h: 3 },
+    { w: 3, h: 2 },    // 3:2   classic landscape
+    { w: 16, h: 9 },   // 16:9  wide
+  ];
+  const SQUARE_POOL: Aspect[] = [
+    { w: 1, h: 1 },
+    { w: 5, h: 4 },
+    { w: 4, h: 5 },
+  ];
+
+  const GAP = 8;
+
+  function poolFor(natW: number, natH: number): Aspect[] {
+    const ratio = natW / natH;
+    if (ratio > 1.15) return LANDSCAPE_POOL;
+    if (ratio < 0.85) return PORTRAIT_POOL;
+    return SQUARE_POOL;
+  }
+
+  function pickAspect(natW: number, natH: number): Aspect {
+    const pool = poolFor(natW, natH);
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function getColumnCount(): number {
+    const w = window.innerWidth;
+    if (w <= 1100) return 3;
+    return 4;
+  }
+
+  function shuffleChildren(grid: HTMLElement) {
+    const items = Array.from(grid.children) as HTMLElement[];
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      grid.appendChild(items[j]);
+      items.splice(j, 1);
+    }
+  }
+
+  function packMasonry(gridId: string, opts: { reroll?: boolean } = {}) {
+    const grid = document.getElementById(gridId);
+    if (!grid) return;
+    const items = Array.from(grid.children).filter(
+      (c) => !(c as HTMLElement).classList.contains('is-hidden')
+    ) as HTMLElement[];
+    if (!items.length) { grid.style.height = ''; return; }
+
+    const cols = getColumnCount();
+    const containerWidth = grid.clientWidth;
+    const colWidth = Math.floor((containerWidth - GAP * (cols - 1)) / cols);
+    const colHeights: number[] = new Array(cols).fill(0);
+
+    grid.classList.add('is-packed');
+
+    const lastWindow = Math.max(2, cols * 2); // balance-mode for the last N placements
+    const lastInCol: (HTMLElement | null)[] = new Array(cols).fill(null);
+
+    items.forEach((el, idx) => {
+      const natW = parseFloat(el.dataset.w ?? '1');
+      const natH = parseFloat(el.dataset.h ?? '1');
+
+      let aspect: Aspect;
+      if (opts.reroll || !el.dataset.aspect) {
+        aspect = pickAspect(natW, natH);
+        el.dataset.aspect = `${aspect.w}/${aspect.h}`;
+      } else {
+        const [aw, ah] = el.dataset.aspect.split('/').map(Number);
+        aspect = { w: aw, h: ah };
+      }
+
+      const isLastN = idx >= items.length - lastWindow;
+
+      // Default: shortest column
+      let col = 0;
+      for (let i = 1; i < cols; i++) if (colHeights[i] < colHeights[col]) col = i;
+
+      // Balance pass for the last N items
+      if (isLastN) {
+        const pool = poolFor(natW, natH);
+        let bestSpread = Infinity, bestCol = col, bestA = aspect;
+        for (const a of pool) {
+          const heightCandidate = Math.round(colWidth * (a.h / a.w));
+          for (let c = 0; c < cols; c++) {
+            const trial = [...colHeights];
+            trial[c] += heightCandidate + GAP;
+            const spread = Math.max(...trial) - Math.min(...trial);
+            if (spread < bestSpread) { bestSpread = spread; bestCol = c; bestA = a; }
+          }
+        }
+        col = bestCol;
+        aspect = bestA;
+        el.dataset.aspect = `${aspect.w}/${aspect.h}`;
+      }
+
+      const itemHeight = Math.round(colWidth * (aspect.h / aspect.w));
+
+      el.style.width = `${colWidth}px`;
+      el.style.height = `${itemHeight}px`;
+      el.style.left = `${col * (colWidth + GAP)}px`;
+      el.style.top = `${colHeights[col]}px`;
+
+      colHeights[col] += itemHeight + GAP;
+      lastInCol[col] = el;
+    });
+
+    // === BOTTOM ALIGNMENT ===
+    // Extend the last item in each shorter column so every column ends at
+    // the tallest column's height. Image inside is object-fit: cover, so
+    // the extra height just crops the photo more — no squeeze, no gap.
+    const maxH = Math.max(...colHeights);
+    for (let c = 0; c < cols; c++) {
+      const last = lastInCol[c];
+      if (!last || colHeights[c] >= maxH) continue;
+      const diff = maxH - colHeights[c];
+      const currentH = parseFloat(last.style.height || '0');
+      last.style.height = `${currentH + diff}px`;
+      colHeights[c] = maxH;
+    }
+
+    grid.style.height = `${Math.max(0, maxH - GAP)}px`;
+  }
+
+  // ============ INITIAL ============
+  const grid = document.getElementById('home-grid');
+  if (grid) {
+    shuffleChildren(grid);
+    packMasonry('home-grid', { reroll: true });
+    document.fonts?.ready.then(() => packMasonry('home-grid'));
+  }
+
+  // ============ SHUFFLE BUTTON ============
+  document.getElementById('shuffle-btn')?.addEventListener('click', () => {
+    const g = document.getElementById('home-grid');
+    if (!g) return;
+    g.style.transition = 'opacity 0.18s';
+    g.style.opacity = '0.25';
+    setTimeout(() => {
+      shuffleChildren(g);
+      packMasonry('home-grid', { reroll: true });
+      g.style.opacity = '';
+    }, 160);
+  });
+
+  // ============ RESIZE ============
+  let resizeTimer: number | undefined;
+  window.addEventListener('resize', () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => packMasonry('home-grid'), 120);
+  });
+</script>

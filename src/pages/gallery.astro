@@ -1,0 +1,338 @@
+---
+import Base from '@layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+
+const photos = (await getCollection('photos')).sort((a, b) => {
+  const aT = a.data.takenAt?.valueOf() ?? 0;
+  const bT = b.data.takenAt?.valueOf() ?? 0;
+  return bT - aT;
+});
+
+const tagCounts = new Map<string, number>();
+photos.forEach((p) => {
+  p.data.tags.forEach((t) => tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1));
+});
+const tags = Array.from(tagCounts.entries()).sort((a, b) => b[1] - a[1]);
+---
+
+<Base title="Photos" description="Photographs by JJ King.">
+  <section class="page-head">
+    <div class="wrap">
+      <div class="page-head-bar">
+        <div class="eyebrow">Photos</div>
+        <div class="eyebrow muted">{photos.length} {photos.length === 1 ? 'frame' : 'frames'}</div>
+      </div>
+      <h1 class="page-title">An ongoing series of frames from wherever I am.</h1>
+    </div>
+  </section>
+
+  {tags.length > 0 && (
+    <section class="wrap tag-bar">
+      <button class="filter-chip is-active" data-tag="__all">
+        All <span class="chip-count">{photos.length}</span>
+      </button>
+      {tags.map(([t, count]) => (
+        <button class="filter-chip" data-tag={t}>
+          {t} <span class="chip-count">{count}</span>
+        </button>
+      ))}
+    </section>
+  )}
+
+  {photos.length === 0 ? (
+    <section class="wrap empty">
+      <div class="empty-card">
+        <div class="eyebrow">No frames yet</div>
+        <p class="empty-text">First photo — incoming.</p>
+      </div>
+    </section>
+  ) : (
+    <section class="wrap gallery" id="gallery" data-lightbox-group>
+      {photos.map((p, i) => (
+        <a
+          id={p.id}
+          href={p.data.image.src}
+          class="g-item"
+          data-tags={p.data.tags.join(',')}
+          data-lightbox
+          data-src={p.data.image.src}
+          data-title={p.data.title ?? ''}
+          data-location={p.data.location ?? ''}
+          data-w={p.data.image.width}
+          data-h={p.data.image.height}
+        >
+          <div class="g-img">
+            <Image
+              src={p.data.image}
+              alt={p.data.caption ?? p.data.title ?? ''}
+              widths={[400, 600, 900, 1400]}
+              sizes="(max-width: 600px) 33vw, (max-width: 1100px) 33vw, 24vw"
+              quality={88}
+              loading={i < 8 ? 'eager' : 'lazy'}
+            />
+            {p.data.tags.length > 0 && (
+              <div class="g-tags">
+                {p.data.tags.slice(0, 2).map((t) => <span class="tag-pill">{t}</span>)}
+              </div>
+            )}
+          </div>
+        </a>
+      ))}
+    </section>
+  )}
+</Base>
+
+<style>
+  .page-head {
+    padding: 56px 0 24px;
+    border-bottom: 1px solid var(--rule-c);
+  }
+  .page-head-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 24px;
+  }
+  .page-title {
+    font-size: clamp(28px, 4.5vw, 52px);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    max-width: 22ch;
+  }
+
+  /* Tag filter bar */
+  .tag-bar {
+    padding: 22px var(--gutter);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-bottom: 1px solid var(--rule-c);
+  }
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--rule-c);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: capitalize;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+  }
+  .filter-chip:hover { color: var(--fg); border-color: var(--fg); }
+  .filter-chip.is-active {
+    background: var(--fg);
+    color: var(--bg);
+    border-color: var(--fg);
+  }
+  .chip-count {
+    font-size: 10.5px;
+    opacity: 0.6;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .empty { padding: 96px var(--gutter); }
+  .empty-card {
+    text-align: center;
+    padding: 64px 32px;
+    border: 1px solid var(--rule-c);
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .empty-card .eyebrow { margin-bottom: 16px; }
+  .empty-text { font-size: clamp(28px, 4.5vw, 44px); font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+
+  /* ===== IG-STYLE MASONRY GALLERY ===== */
+  .gallery {
+    position: relative;
+    padding: 32px 0 40px;
+    /* Height is set by JS masonry once layout runs */
+  }
+  .g-item {
+    /* Before JS: cards stack as blocks. After JS, .gallery.is-packed positions them absolutely. */
+    display: block;
+    margin: 0 0 8px;
+    transition: opacity 0.2s, transform 0.3s var(--ease-out);
+    cursor: zoom-in;
+  }
+  .gallery.is-packed .g-item { position: absolute; margin: 0; }
+  .g-item.is-hidden { display: none; }
+  .g-item:hover { opacity: 0.92; }
+  .g-img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-2);
+    border-radius: 3px;
+  }
+  .g-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;        /* crop, never squeeze */
+    object-position: center;
+    display: block;
+    transition: transform 0.5s var(--ease-out);
+  }
+  .g-item:hover .g-img img { transform: scale(1.025); }
+  .g-tags {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .g-item:hover .g-tags { opacity: 1; }
+</style>
+
+<script>
+  /*
+    Gallery masonry — same orientation-aware random aspect logic as home,
+    with tag filter support. Aspects cached per item (set once, not re-rolled
+    on resize or tag change).
+  */
+  type Aspect = { w: number; h: number };
+
+  const PORTRAIT_POOL: Aspect[] = [
+    { w: 1, h: 1 }, { w: 4, h: 5 }, { w: 3, h: 4 }, { w: 2, h: 3 }, { w: 9, h: 14 },
+  ];
+  const LANDSCAPE_POOL: Aspect[] = [
+    { w: 1, h: 1 }, { w: 5, h: 4 }, { w: 4, h: 3 }, { w: 3, h: 2 }, { w: 16, h: 9 },
+  ];
+  const SQUARE_POOL: Aspect[] = [
+    { w: 1, h: 1 }, { w: 5, h: 4 }, { w: 4, h: 5 },
+  ];
+
+  const GAP = 8;
+  const chips = document.querySelectorAll<HTMLButtonElement>('.filter-chip');
+  const allItems = Array.from(document.querySelectorAll<HTMLElement>('.g-item'));
+
+  function poolFor(natW: number, natH: number): Aspect[] {
+    const ratio = natW / natH;
+    if (ratio > 1.15) return LANDSCAPE_POOL;
+    if (ratio < 0.85) return PORTRAIT_POOL;
+    return SQUARE_POOL;
+  }
+
+  function getColumnCount(): number {
+    const w = window.innerWidth;
+    if (w <= 1100) return 3;
+    return 4;
+  }
+
+  function packMasonry() {
+    const grid = document.getElementById('gallery');
+    if (!grid) return;
+    const cols = getColumnCount();
+    const containerWidth = grid.clientWidth;
+    const colWidth = Math.floor((containerWidth - GAP * (cols - 1)) / cols);
+    const colHeights: number[] = new Array(cols).fill(0);
+
+    grid.classList.add('is-packed');
+
+    const visible = allItems.filter((el) => !el.classList.contains('is-hidden'));
+    const lastWindow = Math.max(2, cols * 2);
+    const lastInCol: (HTMLElement | null)[] = new Array(cols).fill(null);
+
+    visible.forEach((el, idx) => {
+      const natW = parseFloat(el.dataset.w ?? '1');
+      const natH = parseFloat(el.dataset.h ?? '1');
+
+      let aspect: Aspect;
+      if (!el.dataset.aspect) {
+        const pool = poolFor(natW, natH);
+        aspect = pool[Math.floor(Math.random() * pool.length)];
+        el.dataset.aspect = `${aspect.w}/${aspect.h}`;
+      } else {
+        const [aw, ah] = el.dataset.aspect.split('/').map(Number);
+        aspect = { w: aw, h: ah };
+      }
+
+      let col = 0;
+      for (let i = 1; i < cols; i++) if (colHeights[i] < colHeights[col]) col = i;
+
+      if (idx >= visible.length - lastWindow) {
+        const pool = poolFor(natW, natH);
+        let bestSpread = Infinity, bestCol = col, bestA = aspect;
+        for (const a of pool) {
+          const h = Math.round(colWidth * (a.h / a.w));
+          for (let c = 0; c < cols; c++) {
+            const trial = [...colHeights];
+            trial[c] += h + GAP;
+            const spread = Math.max(...trial) - Math.min(...trial);
+            if (spread < bestSpread) { bestSpread = spread; bestCol = c; bestA = a; }
+          }
+        }
+        col = bestCol;
+        aspect = bestA;
+        el.dataset.aspect = `${aspect.w}/${aspect.h}`;
+      }
+
+      const itemHeight = Math.round(colWidth * (aspect.h / aspect.w));
+
+      el.style.width = `${colWidth}px`;
+      el.style.height = `${itemHeight}px`;
+      el.style.left = `${col * (colWidth + GAP)}px`;
+      el.style.top = `${colHeights[col]}px`;
+
+      colHeights[col] += itemHeight + GAP;
+      lastInCol[col] = el;
+    });
+
+    // Extend the last item in each short column so all columns end at the
+    // same height. Image crops more aggressively to fill — no squeeze.
+    const maxH = Math.max(...colHeights);
+    for (let c = 0; c < cols; c++) {
+      const last = lastInCol[c];
+      if (!last || colHeights[c] >= maxH) continue;
+      const diff = maxH - colHeights[c];
+      const currentH = parseFloat(last.style.height || '0');
+      last.style.height = `${currentH + diff}px`;
+      colHeights[c] = maxH;
+    }
+
+    grid.style.height = `${Math.max(0, maxH - GAP)}px`;
+  }
+
+  function applyFilter(tag: string) {
+    allItems.forEach((item) => {
+      const tags = (item.dataset.tags ?? '').split(',').filter(Boolean);
+      const show = tag === '__all' || tags.includes(tag);
+      item.classList.toggle('is-hidden', !show);
+      // Reset cached aspect when subset changes, so balance-pass can re-decide
+      delete item.dataset.aspect;
+    });
+    chips.forEach((c) => c.classList.toggle('is-active', c.dataset.tag === tag));
+    if (tag === '__all') {
+      history.replaceState(null, '', window.location.pathname);
+    } else {
+      history.replaceState(null, '', `#tag=${tag}`);
+    }
+    packMasonry();
+  }
+
+  chips.forEach((c) => {
+    c.addEventListener('click', () => applyFilter(c.dataset.tag ?? '__all'));
+  });
+
+  packMasonry();
+  document.fonts?.ready.then(packMasonry);
+
+  const m = window.location.hash.match(/tag=([\w-]+)/);
+  if (m) applyFilter(decodeURIComponent(m[1]));
+
+  let resizeTimer: number | undefined;
+  window.addEventListener('resize', () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(packMasonry, 120);
+  });
+</script>

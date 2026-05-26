@@ -1,0 +1,9 @@
+{
+  "title": "Short title or null",
+  "caption": "Optional caption",
+  "location": "City, ST",
+  "image": "./assets/filename.jpg",
+  "takenAt": "2026-01-01",
+  "span": 1,
+  "tags": ["nature"]
+}

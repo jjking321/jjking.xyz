@@ -1,0 +1,54 @@
+---
+---
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+  <span class="theme-icon" id="theme-icon">◐</span>
+</button>
+
+<style>
+  .theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 90;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--rule-c);
+    background: var(--bg);
+    color: var(--fg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s var(--ease-snap), background 0.2s;
+  }
+  .theme-toggle:hover {
+    transform: rotate(180deg);
+    background: var(--fg);
+    color: var(--bg);
+  }
+  .theme-icon { font-size: 16px; line-height: 1; }
+  @media (max-width: 480px) {
+    .theme-toggle { bottom: 14px; right: 14px; }
+  }
+</style>
+
+<script is:inline>
+  // Dark is the default theme. Apply 'light' on load only if the user has previously chosen it.
+  (function () {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  })();
+</script>
+<script>
+  const btn = document.getElementById('theme-toggle');
+  btn?.addEventListener('click', () => {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const next = isLight ? 'dark' : 'light';
+    if (next === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    localStorage.setItem('theme', next);
+  });
+</script>

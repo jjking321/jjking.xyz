@@ -1,0 +1,168 @@
+---
+import Base from '@layouts/Base.astro';
+import { getSite, getPage, findSection } from '@lib/site';
+
+const site = await getSite();
+const about = await getPage('about');
+const paragraphs = (about?.body ?? '').split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+const socials = site.socials ?? [];
+const findMe = socials.filter((s) => s.label.toLowerCase() !== 'rss');
+const now = findSection(about, '/now');
+const isExternal = (url: string) => /^https?:\/\//.test(url);
+const fallbackHeading = `Hi, I'm <em>${site.ownerName ?? ''}</em>.`;
+---
+
+<Base title="About" description={about?.subheading ?? site.description}>
+  <section class="page-head">
+    <div class="wrap">
+      <div class="eyebrow">{about?.eyebrow ?? 'About'}</div>
+      <h1 class="display page-title" set:html={about?.heading ?? fallbackHeading}></h1>
+    </div>
+  </section>
+
+  <section class="wrap about-grid">
+    <div class="about-body">
+      {about?.subheading && <p class="lede serif">{about.subheading}</p>}
+
+      {paragraphs.map((p) => <p>{p}</p>)}
+
+      {about?.cta?.href && about?.cta?.label && (
+        <div class="about-cta">
+          <a href={about.cta.href} class="btn primary">{about.cta.label}</a>
+        </div>
+      )}
+    </div>
+
+    <aside class="about-card">
+      {(about?.sidebar ?? []).map((row) => (
+        <div class="ac-row">
+          <div class="eyebrow">{row.label}</div>
+          <p>{row.value}</p>
+        </div>
+      ))}
+      {findMe.length > 0 && (
+        <div class="ac-row">
+          <div class="eyebrow">Find me</div>
+          <p class="ac-links">
+            {findMe.map((s) => (
+              <a href={s.url}
+                 target={isExternal(s.url) ? '_blank' : undefined}
+                 rel={isExternal(s.url) ? 'noreferrer' : undefined}
+                 class="link-underline">{s.label}</a>
+            ))}
+          </p>
+        </div>
+      )}
+    </aside>
+  </section>
+
+  {now && (
+    <section class="now-list">
+      <div class="wrap">
+        <header class="now-head">
+          <div class="eyebrow">{now.eyebrow}</div>
+          <h2 class="display now-title">{now.heading}</h2>
+        </header>
+        <ul class="now-items">
+          {now.items.map((item, i) => (
+            <li><span class="now-num">{String(i + 1).padStart(2, '0')}</span> {item}</li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )}
+</Base>
+
+<style>
+  .page-head {
+    padding: 56px 0 32px;
+    border-bottom: 1px solid var(--rule-c);
+  }
+  .page-title {
+    font-size: clamp(48px, 9vw, 120px);
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    margin-top: 14px;
+  }
+  .page-title em {
+    color: var(--accent);
+    font-style: italic;
+  }
+
+  .about-grid {
+    padding: 72px 0;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+  .about-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-size: 15px;
+    line-height: 1.65;
+    max-width: 60ch;
+    color: var(--fg);
+  }
+  .lede {
+    font-size: clamp(22px, 2.5vw, 30px);
+    line-height: 1.3;
+    font-style: italic;
+    color: var(--fg);
+    margin: 0 0 8px;
+  }
+  .about-cta { margin-top: 16px; }
+
+  .about-card {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 32px;
+    border: 1px solid var(--rule-c);
+    background: var(--bone-2);
+  }
+  .ac-row .eyebrow { margin-bottom: 4px; }
+  .ac-row p { margin: 0; font-size: 13.5px; line-height: 1.4; }
+  .ac-row p.serif { font-size: 17px; }
+  .ac-links { display: flex; gap: 16px; flex-wrap: wrap; }
+
+  .now-list {
+    border-top: 1px solid var(--rule-c);
+    padding: 80px 0;
+  }
+  .now-head { margin-bottom: 32px; }
+  .now-title {
+    font-size: clamp(36px, 5vw, 64px);
+    margin-top: 8px;
+  }
+  .now-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .now-items li {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--rule-c);
+    display: flex;
+    gap: 18px;
+    align-items: baseline;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .now-items li:first-child { border-top: 1px solid var(--rule-c); }
+  .now-items em { font-style: italic; color: var(--accent); }
+  .now-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    min-width: 22px;
+  }
+
+  @media (max-width: 800px) {
+    .about-grid { grid-template-columns: 1fr; gap: 40px; }
+  }
+</style>

@@ -1,0 +1,174 @@
+---
+import Base from '@layouts/Base.astro';
+import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('posts', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await post.render();
+const { title, description, publishedAt, updatedAt, cover, tags } = post.data;
+---
+
+<Base title={title} description={description}>
+  <article class="post">
+    <header class="post-head">
+      <div class="wrap">
+        <a href="/writing" class="post-back link-underline">← Writing</a>
+        <div class="post-meta-top">
+          <span>
+            {publishedAt.toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric',
+            })}
+          </span>
+          {tags.length > 0 && (
+            <span>{tags.map((t) => `#${t}`).join(' · ')}</span>
+          )}
+        </div>
+        <h1 class="display post-h1">{title}</h1>
+        {description && <p class="post-lede">{description}</p>}
+      </div>
+    </header>
+
+    {cover && (
+      <div class="wrap post-cover-wrap">
+        <div class="post-cover">
+          <Image src={cover} alt={title} widths={[600, 1000, 1400]} sizes="(max-width: 900px) 92vw, 900px" />
+        </div>
+      </div>
+    )}
+
+    <div class="wrap post-body-wrap">
+      <div class="post-body">
+        <Content />
+      </div>
+    </div>
+
+    <footer class="post-foot">
+      <div class="wrap">
+        <a href="/writing" class="btn ghost">← Back to writing</a>
+      </div>
+    </footer>
+  </article>
+</Base>
+
+<style>
+  .post-head {
+    padding: 40px 0 32px;
+    border-bottom: 1px solid var(--rule-c);
+  }
+  .post-back {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .post-meta-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 28px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .post-h1 {
+    font-size: clamp(40px, 7vw, 96px);
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin: 14px 0;
+    max-width: 18ch;
+  }
+  .post-lede {
+    font-size: clamp(15px, 1.4vw, 19px);
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 60ch;
+    margin: 12px 0 0;
+  }
+
+  .post-cover-wrap { padding-top: 40px; }
+  .post-cover {
+    overflow: hidden;
+    background: var(--bone-2);
+  }
+  .post-cover img { width: 100%; height: auto; }
+
+  .post-body-wrap {
+    padding: 56px 0 40px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .post-body {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--fg);
+  }
+  .post-body :global(h2) {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(26px, 3.5vw, 36px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 2.4em 0 0.6em;
+  }
+  .post-body :global(h3) {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(20px, 2.5vw, 26px);
+    line-height: 1.1;
+    margin: 1.8em 0 0.5em;
+  }
+  .post-body :global(p) { margin: 1em 0; }
+  .post-body :global(a) {
+    color: var(--accent);
+    border-bottom: 1px solid currentColor;
+  }
+  .post-body :global(strong) { font-weight: 500; color: var(--fg); }
+  .post-body :global(em) { font-style: italic; }
+  .post-body :global(blockquote) {
+    border-left: 2px solid var(--accent);
+    padding: 4px 0 4px 20px;
+    margin: 1.6em 0;
+    font-style: italic;
+    color: var(--muted);
+  }
+  .post-body :global(code) {
+    background: var(--bone-2);
+    padding: 1px 6px;
+    font-size: 0.92em;
+    border-radius: 3px;
+  }
+  .post-body :global(pre) {
+    background: var(--ink);
+    color: var(--bone);
+    padding: 16px;
+    overflow-x: auto;
+    font-size: 13px;
+    border-radius: 4px;
+  }
+  .post-body :global(ul), .post-body :global(ol) { padding-left: 22px; }
+  .post-body :global(li) { margin: 0.4em 0; }
+  .post-body :global(img) {
+    width: 100%;
+    margin: 2em 0;
+  }
+  .post-body :global(hr) {
+    border: 0;
+    border-top: 1px solid var(--rule-c);
+    margin: 3em 0;
+  }
+
+  .post-foot {
+    padding: 40px 0 60px;
+    border-top: 1px solid var(--rule-c);
+  }
+</style>

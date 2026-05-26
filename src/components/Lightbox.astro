@@ -1,0 +1,260 @@
+---
+/*
+  Site-wide lightbox.
+
+  Any link or element with a `data-lightbox` attribute will open this lightbox
+  when clicked. The attribute value is a JSON array of items, OR the element's
+  `data-src`, `data-title`, etc. attributes describe a single image.
+
+  Convention: gallery + home cards use a wrapper `[data-lightbox-group]` and
+  each photo card has `data-src` (full image), `data-thumb`, `data-title`,
+  `data-location`, `data-tags`. Clicking any card opens the lightbox starting
+  on that item, with prev/next nav through the rest of the group.
+*/
+---
+
+<div id="lightbox" class="lightbox" aria-hidden="true" role="dialog">
+  <button class="lb-close" aria-label="Close" id="lb-close">×</button>
+  <button class="lb-prev" aria-label="Previous" id="lb-prev">‹</button>
+  <button class="lb-next" aria-label="Next" id="lb-next">›</button>
+
+  <div class="lb-stage" id="lb-stage">
+    <img id="lb-img" alt="" />
+  </div>
+
+  <div class="lb-meta" id="lb-meta">
+    <div class="lb-meta-left">
+      <span class="lb-title" id="lb-title"></span>
+      <span class="lb-loc" id="lb-loc"></span>
+    </div>
+    <div class="lb-meta-right">
+      <span class="lb-count" id="lb-count"></span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(10, 10, 10, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
+  }
+  .lightbox.is-open {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s ease, visibility 0s;
+  }
+  [data-theme='light'] .lightbox {
+    background: rgba(245, 243, 238, 0.96);
+  }
+
+  .lb-stage {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 80px 24px;
+    overflow: hidden;
+  }
+  .lb-stage img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    border-radius: 2px;
+    transition: opacity 0.2s ease;
+  }
+
+  .lb-meta {
+    width: 100%;
+    max-width: 1100px;
+    padding: 0 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    color: #e1e1e1;
+    font-size: 13px;
+    gap: 18px;
+  }
+  [data-theme='light'] .lb-meta { color: #1a1a1a; }
+
+  .lb-meta-left { display: flex; flex-direction: column; gap: 4px; }
+  .lb-title { font-weight: 600; }
+  .lb-loc {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+  .lb-count {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lb-close, .lb-prev, .lb-next {
+    position: fixed;
+    color: #e1e1e1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    z-index: 2;
+  }
+  .lb-close:hover, .lb-prev:hover, .lb-next:hover {
+    background: rgba(255,255,255,0.16);
+    border-color: rgba(255,255,255,0.4);
+  }
+  [data-theme='light'] .lb-close,
+  [data-theme='light'] .lb-prev,
+  [data-theme='light'] .lb-next {
+    color: #1a1a1a;
+    background: rgba(0,0,0,0.04);
+    border-color: rgba(0,0,0,0.18);
+  }
+  [data-theme='light'] .lb-close:hover,
+  [data-theme='light'] .lb-prev:hover,
+  [data-theme='light'] .lb-next:hover {
+    background: rgba(0,0,0,0.12);
+    border-color: rgba(0,0,0,0.4);
+  }
+
+  .lb-close {
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .lb-prev, .lb-next {
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    height: 52px;
+    font-size: 30px;
+    line-height: 1;
+  }
+  .lb-prev { left: 20px; }
+  .lb-next { right: 20px; }
+  .lb-prev:hover { transform: translateY(-50%) translateX(-3px); }
+  .lb-next:hover { transform: translateY(-50%) translateX(3px); }
+
+  @media (max-width: 700px) {
+    .lb-stage { padding: 60px 16px 16px; }
+    .lb-close { top: 14px; right: 14px; width: 38px; height: 38px; font-size: 22px; }
+    .lb-prev, .lb-next { width: 44px; height: 44px; font-size: 24px; }
+    .lb-prev { left: 10px; }
+    .lb-next { right: 10px; }
+  }
+</style>
+
+<script>
+  type LBItem = { src: string; title: string; location: string; tags: string };
+
+  const lb = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lb-img') as HTMLImageElement | null;
+  const lbTitle = document.getElementById('lb-title');
+  const lbLoc = document.getElementById('lb-loc');
+  const lbCount = document.getElementById('lb-count');
+  const lbClose = document.getElementById('lb-close');
+  const lbPrev = document.getElementById('lb-prev');
+  const lbNext = document.getElementById('lb-next');
+
+  let items: LBItem[] = [];
+  let idx = 0;
+
+  function gatherItems(triggerEl: HTMLElement): LBItem[] {
+    // Find all sibling triggers in the same group
+    const group = triggerEl.closest('[data-lightbox-group]') ?? document;
+    return Array.from(group.querySelectorAll<HTMLElement>('[data-lightbox]')).map(
+      (el) => ({
+        src: el.dataset.src ?? '',
+        title: el.dataset.title ?? '',
+        location: el.dataset.location ?? '',
+        tags: el.dataset.tags ?? '',
+      })
+    );
+  }
+
+  function show(i: number) {
+    if (!lb || !lbImg || !items.length) return;
+    idx = (i + items.length) % items.length;
+    const item = items[idx];
+    lbImg.style.opacity = '0';
+    lbImg.src = item.src;
+    lbImg.alt = item.title || item.location || '';
+    lbImg.onload = () => { lbImg!.style.opacity = '1'; };
+    if (lbTitle) lbTitle.textContent = item.title || '—';
+    if (lbLoc) lbLoc.textContent = item.location || '';
+    if (lbCount) lbCount.textContent = `${idx + 1} / ${items.length}`;
+  }
+
+  function open(startIdx: number) {
+    if (!lb) return;
+    lb.classList.add('is-open');
+    lb.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    show(startIdx);
+  }
+
+  function close() {
+    if (!lb) return;
+    lb.classList.remove('is-open');
+    lb.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+
+  // Wire up triggers (delegated so dynamically-shuffled cards still work)
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    const trigger = target.closest('[data-lightbox]') as HTMLElement | null;
+    if (!trigger) return;
+    e.preventDefault();
+    items = gatherItems(trigger);
+    const myIdx = items.findIndex(
+      (it) => it.src === (trigger.dataset.src ?? '')
+    );
+    open(Math.max(0, myIdx));
+  });
+
+  lbClose?.addEventListener('click', close);
+  lbPrev?.addEventListener('click', () => show(idx - 1));
+  lbNext?.addEventListener('click', () => show(idx + 1));
+
+  // Click anywhere outside the image (or its controls) closes the lightbox
+  lb?.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    // Don't close on: the image itself, the close/prev/next buttons, or the meta footer
+    if (target.tagName === 'IMG') return;
+    if (target.closest('.lb-close, .lb-prev, .lb-next, .lb-meta')) return;
+    close();
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', (e) => {
+    if (!lb?.classList.contains('is-open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') show(idx - 1);
+    if (e.key === 'ArrowRight') show(idx + 1);
+  });
+</script>

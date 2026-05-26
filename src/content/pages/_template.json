@@ -1,0 +1,21 @@
+{
+  "eyebrow": "Optional small label above the heading",
+  "heading": "Page headline (HTML allowed for things like <em>emphasis</em>)",
+  "subheading": "Optional larger paragraph beneath the heading",
+  "body": "Body paragraphs. Use \\n\\n to separate paragraphs.",
+  "cta": {
+    "label": "Call to action text",
+    "href": "https://example.com or mailto:you@example.com"
+  },
+  "sidebar": [
+    { "label": "Row label", "value": "Row value" }
+  ],
+  "sections": [
+    {
+      "eyebrow": "Section eyebrow",
+      "heading": "Section heading",
+      "body": "Optional section paragraph",
+      "items": ["List item 1", "List item 2"]
+    }
+  ]
+}

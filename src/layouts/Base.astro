@@ -1,0 +1,76 @@
+---
+import '@styles/global.css';
+import Nav from '@components/Nav.astro';
+import Footer from '@components/Footer.astro';
+import ThemeToggle from '@components/ThemeToggle.astro';
+import Lightbox from '@components/Lightbox.astro';
+import { getSite } from '@lib/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const site = await getSite();
+const siteName = site.siteName ?? 'My Site';
+const defaultDescription = site.description ?? '';
+
+const { title, description = defaultDescription } = Astro.props;
+
+const pageTitle = !title ? `${siteName} — index` : `${title} · ${siteName}`;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#f3efe6" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate" type="application/rss+xml" title={`${siteName} — Writing`} href="/rss.xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Nav />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    <ThemeToggle />
+    <Lightbox />
+    <script>
+      // Reveal-on-scroll for elements with .reveal
+      const els = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add('in');
+              io.unobserve(e.target);
+            }
+          });
+        }, { threshold: 0.12 });
+        els.forEach((el) => io.observe(el));
+      } else {
+        els.forEach((el) => el.classList.add('in'));
+      }
+    </script>
+
+    <style is:global>
+      .skip-link {
+        position: absolute;
+        left: -10000px;
+        top: 8px;
+        padding: 8px 12px;
+        background: var(--fg);
+        color: var(--bg);
+        z-index: 9999;
+      }
+      .skip-link:focus { left: 8px; }
+    </style>
+  </body>
+</html>

@@ -1,0 +1,51 @@
+---
+import Base from '@layouts/Base.astro';
+---
+<Base title="404 — Not found" description="That page doesn't exist.">
+  <section class="lost">
+    <div class="wrap lost-inner">
+      <div class="eyebrow">Error · 404</div>
+      <h1 class="display lost-h1">Lost.</h1>
+      <p class="lost-sub">
+        That page doesn't exist (or it never did). Try one of these:
+      </p>
+      <div class="lost-links">
+        <a href="/" class="btn primary">Home</a>
+        <a href="/gallery" class="btn ghost">Photos</a>
+        <a href="/writing" class="btn ghost">Writing</a>
+        <a href="/about" class="btn ghost">About</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .lost {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    padding: 80px 0;
+  }
+  .lost-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .lost-h1 {
+    font-size: clamp(120px, 28vw, 280px);
+    line-height: 0.88;
+    color: var(--accent);
+  }
+  .lost-sub {
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--muted);
+    margin: 0;
+  }
+  .lost-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+</style>

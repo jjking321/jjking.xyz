@@ -1,0 +1,23 @@
+{
+  "siteName": "JJ King",
+  "ownerName": "JJ King",
+  "tagline": "Entrepreneur · Future father · Serial hobbyist",
+  "email": "jj@jjking.xyz",
+  "location": "Raleigh, NC",
+  "description": "A creative outlet for photos, art, writing, playlists, and apps by JJ King, a serial hobbyist in Raleigh, NC.",
+  "nav": [
+    { "href": "/", "label": "Home" },
+    { "href": "/gallery", "label": "Photos" },
+    { "href": "/art", "label": "Art" },
+    { "href": "/writing", "label": "Writing" },
+    { "href": "/playlists", "label": "Playlists" },
+    { "href": "/apps", "label": "Apps" },
+    { "href": "/about", "label": "About" }
+  ],
+  "socials": [
+    { "label": "Email", "url": "mailto:jj@jjking.xyz" },
+    { "label": "Instagram", "url": "https://instagram.com" },
+    { "label": "GitHub", "url": "https://github.com" },
+    { "label": "RSS", "url": "/rss.xml" }
+  ]
+}
