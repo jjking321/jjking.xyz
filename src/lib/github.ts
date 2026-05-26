@@ -147,13 +147,20 @@ export async function triggerRedeploy(): Promise<void> {
     return;
   }
   try {
+    // Vercel's deployments API needs the GitHub numeric repo ID, not the
+    // owner/name string. Look it up once per cold-start and cache.
+    const repoId = await getRepoId();
+    if (!repoId) {
+      console.warn('[deploy] could not resolve github repoId');
+      return;
+    }
     const body = {
       name: 'admin-commit',
       project: projectId,
       target: 'production',
       gitSource: {
         type: 'github',
-        repo: REPO(),
+        repoId,
         ref: BRANCH(),
       },
     };
@@ -168,6 +175,27 @@ export async function triggerRedeploy(): Promise<void> {
     }
   } catch (e) {
     console.warn('[deploy] api call failed:', (e as Error).message);
+  }
+}
+
+let _repoIdCache: number | null = null;
+async function getRepoId(): Promise<number | null> {
+  if (_repoIdCache) return _repoIdCache;
+  // Allow override via env var to skip the GitHub lookup on every cold start
+  const envOverride = Number(process.env.GITHUB_REPO_ID || 0);
+  if (envOverride) {
+    _repoIdCache = envOverride;
+    return envOverride;
+  }
+  if (!isLive()) return null;
+  try {
+    const r = await fetch(`${API}/repos/${REPO()}`, { headers: ghHeaders() });
+    if (!r.ok) return null;
+    const j = (await r.json()) as { id?: number };
+    if (j.id) _repoIdCache = j.id;
+    return j.id ?? null;
+  } catch {
+    return null;
   }
 }
 
